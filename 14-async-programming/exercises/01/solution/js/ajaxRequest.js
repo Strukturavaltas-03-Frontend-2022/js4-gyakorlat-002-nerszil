@@ -10,36 +10,54 @@ import { state, actions } from './store/ajaxRequest.js';
  * @param {number} [delay=5000]       - the delay in milisec beetween two retry
  * @returns {function}                - the reqeust function, witch send the request
  */
-function ajaxRequest({
+ function ajaxRequest({
   url,
   successCallback,
   method = 'GET',
   delay = 5000,
   maxRetry = 2,
+  retryCount= 2,
 } = {}) {
   actions.initRequest(maxRetry, delay);
+
 
   /**
    * Log error message to the console.error
    * @param {string} message - the error message
    */
-  function handleError(message) {
-
+   function handleError(message) {
+    console.log('ERROR:', message);
   }
 
   /**
    * Handle ajax onload event
    * @param {Object} xhr - the error message
    */
-  function handleLoad(xhr) {
-
+   function handleLoad(xhr) {
+    console.error(xhr);
+    successCallback(xhr.response);
   }
+
 
   /**
    * Send ajax request
    */
-  function request() {
-
+   function request() {
+    const xhr = new XMLHttpRequest();
+    xhr.open(method, url);
+    xhr.onload = (ev) => handleLoad(ev.target);
+    xhr.send();
+    xhr.onerror = (ev) => {
+      maxRetry -= 1;
+      if (maxRetry === 0) {
+        handleError(ev.message);
+      } else {
+        const to = setTimeout(() => {
+          clearTimeout(to);
+          request();
+        }, delay);
+      }
+    };
   }
 
   return request;
